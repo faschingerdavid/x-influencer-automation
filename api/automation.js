@@ -88,8 +88,15 @@ export default async function handler(req, res) {
           .from('influencers')
           .select('id')
           .eq('handle', `@${handle}`)
-          .single();
-        if (influencerError || !influencer) throw new Error(`Influencer record missing for @${handle}`);
+          .maybeSingle();
+        if (influencerError || !influencer) {
+          const diagnostic = influencerError
+            ? [influencerError.code, influencerError.message, influencerError.details, influencerError.hint]
+                .filter(Boolean)
+                .join(' | ')
+            : 'No matching row returned';
+          throw new Error(`Influencer lookup failed for @${handle}: ${diagnostic}`);
+        }
 
         const userId = await getUserId(handle);
         if (!userId) throw new Error(`X user not found: @${handle}`);
